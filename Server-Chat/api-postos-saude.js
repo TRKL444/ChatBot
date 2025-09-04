@@ -5,7 +5,6 @@ const app = express();
 const PORT = 3000; // A porta em que nossa API vai rodar.
 
 // --- BANCO DE DADOS (SIMULADO) DE POSTOS DE SAÚDE DE PORTO VELHO ---
-// Esta é a lista de postos. Você pode adicionar quantos quiser.
 // A estrutura é: nome, endereço e, mais importante, o bairro em letras minúsculas.
 const postosDeSaude = [
     { id: 1, nome: 'UBS Aponiã', endereco: 'R. Andréia, 4851', bairro: 'aponiã' },
