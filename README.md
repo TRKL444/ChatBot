@@ -1,6 +1,6 @@
 Chatbot de Atendimento - Postos de Saúde (Porto Velho)
 📖 Visão Geral
-Este projeto é um protótipo funcional de um chatbot para WhatsApp, desenvolvido como um trabalho acadêmico. O objetivo principal do bot é realizar um atendimento inicial automatizado, coletando informações básicas do usuário (nome e bairro) para, em seguida, direcioná-lo ao posto de saúde mais próximo em Porto Velho, RO.
+Este projeto é um protótipo funcional de um chatbot para WhatsApp. O objetivo principal do bot é realizar um atendimento inicial automatizado, coletando informações básicas do usuário (nome e bairro) para, em seguida, direcioná-lo ao posto de saúde mais próximo em Porto Velho, RO.
 
 A solução é dividida em dois componentes principais:
 
