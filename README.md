@@ -1,106 +1,93 @@
-Chatbot de Atendimento - Postos de Saúde (Porto Velho)
+🤖 Chatbot de Atendimento – Postos de Saúde (Porto Velho)
+
 📖 Visão Geral
-Este projeto é um protótipo funcional de um chatbot para WhatsApp. O objetivo principal do bot é realizar um atendimento inicial automatizado, coletando informações básicas do usuário (nome e bairro) para, em seguida, direcioná-lo ao posto de saúde mais próximo em Porto Velho, RO.
 
-A solução é dividida em dois componentes principais:
+Este projeto é um protótipo funcional de chatbot para WhatsApp, criado para automatizar o atendimento inicial em postos de saúde de Porto Velho, RO.
 
-Uma API REST local que serve como um banco de dados simulado, contendo a lista de postos de saúde e seus respectivos bairros.
+O bot coleta informações básicas (nome e bairro) e direciona o usuário para o posto de saúde mais próximo.
 
-Um serviço de chatbot que se conecta ao WhatsApp através da biblioteca whatsapp-web.js para interagir com os usuários em tempo real.
+A solução é composta por dois módulos:
 
-✨ Funcionalidades Principais
-Atendimento Automatizado: Inicia a conversa e guia o usuário através de um fluxo pré-definido.
+API REST local → funciona como um banco de dados simulado com os postos de saúde e bairros.
 
-Coleta de Dados: Solicita e armazena temporariamente o nome e o bairro do usuário.
+Chatbot no WhatsApp → criado com a biblioteca whatsapp-web.js, interagindo em tempo real com os usuários.
 
-Integração com API: Consulta a API local para buscar postos de saúde com base no bairro informado.
+✨ Funcionalidades
 
-Direcionamento Inteligente: Retorna ao usuário o nome e o endereço do(s) posto(s) de saúde encontrado(s).
+Atendimento Automatizado: conduz a conversa em um fluxo pré-definido.
 
-Autenticação Simples: Utiliza um QR Code para conectar uma sessão do WhatsApp Web, facilitando a prototipagem.
+Coleta de Dados: solicita nome e bairro do usuário.
 
-Manutenção de Sessão: Salva o login localmente para não exigir a leitura do QR Code a cada reinicialização.
+Integração com API: consulta os postos de saúde disponíveis para o bairro informado.
+
+Direcionamento Inteligente: retorna nome e endereço do posto encontrado.
+
+Autenticação Simples: conexão via QR Code no WhatsApp Web.
+
+Manutenção de Sessão: armazena login localmente (não precisa escanear o QR Code toda vez).
 
 🛠️ Tecnologias Utilizadas
+
 Backend: Node.js
 
-API Server: Express.js
+Servidor da API: Express.js
 
-Cliente WhatsApp (Não Oficial): whatsapp-web.js
+Cliente WhatsApp: whatsapp-web.js (não oficial)
 
-Cliente HTTP (para consumir a API): axios
+Cliente HTTP: axios
 
-Exibição de QR Code no Terminal: qrcode-terminal
+Exibição de QR Code: qrcode-terminal
 
-Gerenciador de Pacotes: npm
+Gerenciamento de pacotes: npm
 
 🚀 Como Executar o Projeto
-Siga os passos abaixo para rodar o projeto em sua máquina local.
+🔑 Pré-requisitos
 
-Pré-requisitos
-Node.js: Versão 16 ou superior. (Você pode verificar com node -v).
+Node.js (versão 16 ou superior) → node -v
 
-npm: Geralmente instalado junto com o Node.js. (Você pode verificar com npm -v).
+npm (vem junto com o Node.js) → npm -v
 
-Um número de WhatsApp para conectar e testar o bot.
+Um número de WhatsApp para conectar e testar.
 
-Passo a Passo
-Clone ou Baixe os Arquivos
+📌 Passo a Passo
 
+Clone ou baixe o projeto
 Certifique-se de que os arquivos api-postos-saude.js e chatbot-nao-oficial.js estejam na mesma pasta.
 
-Abra o Terminal
+Abra o terminal e vá até a pasta
 
-Navegue até a pasta do projeto usando o comando cd.
+cd caminho/para/a/pasta-do-projeto
 
-cd caminho/para/a/pasta/do-projeto
 
-Instale as Dependências
-
-Execute o comando abaixo para instalar todas as bibliotecas necessárias listadas no package.json (se não tiver um, este comando irá criá-lo e adicionar as dependências).
+Instale as dependências
 
 npm init -y
 npm install express axios whatsapp-web.js qrcode-terminal
 
-Inicie a API de Postos de Saúde
 
-Em um terminal, inicie o servidor da API. Este terminal precisa permanecer aberto.
+Inicie a API de Postos de Saúde
 
 node api-postos-saude.js
 
-Você deverá ver a mensagem: API de Postos de Saúde rodando em http://localhost:3000
 
-Inicie o Chatbot
+Saída esperada:
 
-Abra um segundo terminal (mantenha o primeiro rodando!). Na mesma pasta do projeto, execute o serviço do chatbot.
+API de Postos de Saúde rodando em http://localhost:3000
+
+
+Inicie o Chatbot (em outro terminal, mantendo o anterior aberto)
 
 node chatbot-nao-oficial.js
 
+
+Escaneie o QR Code exibido no terminal:
+
+Abra o WhatsApp no celular
+
+Vá em Configurações > Aparelhos Conectados > Conectar um Aparelho
+
 Escaneie o QR Code
 
-O terminal exibirá um QR Code. Abra o WhatsApp no seu celular, vá em Configurações > Aparelhos Conectados > Conectar um Aparelho e escaneie o código.
-
 Teste!
-
-Após a mensagem ✅ Cliente do WhatsApp conectado e pronto para uso! aparecer no terminal, envie uma mensagem como "Olá" do seu número pessoal para o número que você conectou. A conversa deverá começar!
-
-🔧 Como Customizar
-Adicionar ou Editar Postos de Saúde
-Para alterar a lista de postos de saúde, basta editar o array postosDeSaude dentro do arquivo api-postos-saude.js. O formato de cada objeto deve ser mantido:
-
-const postosDeSaude = [
-    { id: 1, nome: 'UBS Aponiã', endereco: 'R. Andréia, 4851', bairro: 'aponiã' },
-    { id: 2, nome: 'UBS Agenor de Carvalho', endereco: 'R. Anari, 2220', bairro: 'agenor de carvalho' },
-    // Adicione novos postos aqui
-];
-
-Importante: O bairro deve estar sempre em letras minúsculas para garantir que a busca funcione corretamente.
-
-📈 Possíveis Melhorias (Próximos Passos)
-Substituir o array de postos por um banco de dados real (como MongoDB, PostgreSQL ou Firebase).
-
-Implementar um tratamento de erros mais robusto (ex: quando o usuário envia uma resposta inesperada).
-
-Adicionar mais etapas à conversa (coletar idade, telefone, etc.).
-
-Migrar para a API Oficial do WhatsApp (Meta) para um ambiente de produção estável.
+Após a mensagem ✅ Cliente do WhatsApp conectado e pronto para uso!
+→ Envie “Olá” do seu WhatsApp pessoal para o número conectado.
