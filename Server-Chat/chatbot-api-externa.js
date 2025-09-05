@@ -1,38 +1,17 @@
 // --- IMPORTAÇÕES NECESSÁRIAS ---
-// Biblioteca whatsapp-web.js para integração com WhatsApp Web
-// Biblioteca qrcode-terminal para gerar QR codes no terminal
-// Biblioteca axios para fazer requisições HTTP
-// Biblioteca fs para manipulação de arquivos (cache)   
-
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const fs = require('fs');
 
 // --- CONFIGURAÇÕES ---
-// Pasta para armazenar cache de respostas da API
-// Duração do cache em horas
-// (Exemplo: 24 horas)  
-// Você pode ajustar conforme necessário
-// Certifique-se de que a pasta exista ou o código a criará automaticamente
-
 const CACHE_FOLDER = './api_cache/';
 const CACHE_DURATION_HOURS = 24;
 
 // --- SESSÕES DE CONVERSA ---
-// Armazena o estado da conversa para cada usuário
-// Estrutura: { 'user_id': { step: 'STEP_NAME', data: { ... } } }
-// Exemplo de steps: START, GET_NAME, GET_AGE, GET_PHONE, GET_LOCATION
-// Você pode expandir conforme necessário
 const userSessions = {};
 
 // --- INICIALIZAÇÃO DO CLIENTE DO WHATSAPP ---
-// Configura o cliente com autenticação local e opções do Puppeteer
-// (headless, args para evitar problemas em certos ambientes)
-// Gera o QR code no terminal para autenticação
-// Configura eventos para lidar com mensagens recebidas e estado do cliente
-// Inicia o cliente
-
 console.log('Iniciando o cliente do WhatsApp...');
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -43,16 +22,6 @@ const client = new Client({
 });
 
 // --- EVENTOS DO CLIENTE ---
-// Gera o QR code no terminal para autenticação
-// Indica quando o cliente está pronto
-// Lida com mensagens recebidas (texto e localização)
-// Filtra mensagens para garantir que são de usuários (não grupos ou sistemas)
-// Processa a lógica de conversa e localização
-// Envia respostas apropriadas
-// Usa funções auxiliares para geocodificação, cálculo de distância, cache e formatação de respostas
-// Limpa sessões de usuários após completar a interação
-// Fornece feedback no console para monitoramento
-
 client.on('qr', (qr) => {
     console.log('--------------------------------------------------');
     console.log('ESCANEAR O QR CODE ABAIXO COM O SEU WHATSAPP:');
@@ -62,7 +31,6 @@ client.on('qr', (qr) => {
 
 client.on('ready', () => {
     console.log('✅ Cliente do WhatsApp conectado e pronto para uso!');
-    // Garante que a pasta de cache exista
     if (!fs.existsSync(CACHE_FOLDER)) {
         fs.mkdirSync(CACHE_FOLDER);
     }
@@ -70,8 +38,6 @@ client.on('ready', () => {
 
 client.on('message', async (message) => {
     if (!message.from.endsWith('@c.us')) return;
-
-    // Lógica especial para mensagens de localização
 
     if (message.type === 'location') {
         const from = message.from;
@@ -83,10 +49,6 @@ client.on('message', async (message) => {
         return;
     }
 
-    // Lógica para mensagens de texto
-    // Continua a conversa com base no estado atual da sessão do usuário
-
-    if (message.type !== 'chat') return;
     const from = message.from;
     const userInput = message.body;
     console.log(`Mensagem recebida de ${from}: "${userInput}"`);
@@ -94,33 +56,23 @@ client.on('message', async (message) => {
 });
 
 // --- FUNÇÕES DE LÓGICA ---
-// Funções auxiliares para geocodificação, cálculo de distância, cache e formatação de respostas
-// Limpa sessões de usuários após completar a interação
-// Fornece feedback no console para monitoramento
-
-// Converte coordenadas (lat/lon) em endereço para pegar o UF
-// Usa a API Nominatim do OpenStreetMap
-// Retorna o código do estado (UF) em minúsculas ou null se não encontrado
 
 async function reverseGeocode(lat, lon) {
     try {
         const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+        console.log(`[DEBUG] Chamando a URL de geocodificação: ${url}`);
         const response = await axios.get(url, { headers: { 'User-Agent': 'ChatbotSaude/1.0' } });
-        const stateCode = response.data.address.state_code;
-        if (!stateCode) throw new Error('UF não encontrado para as coordenadas.');
-        return stateCode.toLowerCase();
+        const isoCode = response.data.address['ISO3166-2-lvl4'];
+        if (!isoCode || !isoCode.includes('-')) {
+            throw new Error('Código ISO do estado (UF) não encontrado na resposta da API.');
+        }
+        const uf = isoCode.split('-')[1];
+        return uf.toLowerCase();
     } catch (error) {
         console.error('Erro na geocodificação reversa:', error.message);
         return null;
     }
 }
-
-// Calcula a distância em KM entre dois pontos geográficos
-// Usa a fórmula de Haversine
-// Retorna a distância em quilômetros
-// Fonte: https://stackoverflow.com/a/21623206
-// (Adaptado para JavaScript)
-// (lat1, lon1) e (lat2, lon2) são as coordenadas dos dois pontos
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Raio da Terra em km
@@ -133,47 +85,35 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// Busca os postos de saúde (com cache por estado)
-// Usa a API do Governo para obter os dados
-// Armazena o resultado em cache para evitar chamadas repetidas
-// Retorna a lista de postos de saúde
-// (uf deve ser em minúsculas, ex: 'sp', 'rj')
-
 async function getPostosData(uf) {
-    const cacheFilePath = `${CACHE_FOLDER}postos_${uf}.json`;
+    const cacheFilePath = `${CACHE_FOLDER}postos_cnes_${uf}.json`; // Novo nome de cache
     if (fs.existsSync(cacheFilePath)) {
         const cacheData = JSON.parse(fs.readFileSync(cacheFilePath, 'utf-8'));
         const now = new Date();
         const cacheAgeHours = (now - new Date(cacheData.timestamp)) / (1000 * 60 * 60);
         if (cacheAgeHours < CACHE_DURATION_HOURS) {
-            console.log(`Usando cache para o estado: ${uf.toUpperCase()} ⚡`);
+            console.log(`Usando cache CNES para o estado: ${uf.toUpperCase()} ⚡`);
             return cacheData.data;
         }
     }
-    console.log(`Buscando dados na API do Governo para o estado: ${uf.toUpperCase()}...`);
-    const apiUrl = `https://apidadosabertos.saude.gov.br/assistencia-a-saude/hospitais-e-leitos?uf=${uf}`;
+    console.log(`Buscando dados na API CNES para o estado: ${uf.toUpperCase()}...`);
+    // >>>>> MUDANÇA PRINCIPAL: NOVA URL DA API <<<<<
+    const apiUrl = `https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?uf=${uf}`;
     const response = await axios.get(apiUrl);
-    const postosData = response.data.hospitais_leitos;
+    const postosData = response.data; // A estrutura da resposta é diferente
     const newCacheData = { timestamp: new Date(), data: postosData };
     fs.writeFileSync(cacheFilePath, JSON.stringify(newCacheData, null, 2));
-    console.log(`Cache criado para o estado: ${uf.toUpperCase()}`);
+    console.log(`Cache CNES criado para o estado: ${uf.toUpperCase()}`);
     return postosData;
 }
 
-// Formata a resposta do posto de saúde
-// Inclui nome, endereço, distância e link para o Google Maps
-// Retorna uma string formatada para envio no WhatsApp 
-// (posto é o objeto do posto, distancia é a distância em KM)
-// Usa encodeURIComponent para criar o link do Google Maps
-// Formata o endereço de forma amigável para o usuário do WhatsApp 
-// Inclui emojis para melhorar a aparência da mensagem 
-
 function formatarPosto(posto, distancia) {
-    const nome = posto.nomeFantasia || 'Nome não informado';
-    const rua = posto.logradouro || '';
-    const numero = posto.numero || '';
-    const bairro = posto.bairro || '';
-    const cidade = posto.municipio || 'Cidade não informada';
+    // >>>>> MUDANÇA: Usando os nomes de campo da nova API <<<<<
+    const nome = posto.noFantasia || 'Nome não informado';
+    const rua = posto.noLogradouro || '';
+    const numero = posto.nuEndereco || '';
+    const bairro = posto.noBairro || '';
+    const cidade = posto.noMunicipio || 'Cidade não informada';
     const enderecoCompleto = [rua, numero, bairro].filter(part => part).join(', ');
     const query = enderecoCompleto ? `${nome}, ${enderecoCompleto}, ${cidade}` : `${nome}, ${cidade}`;
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -181,10 +121,6 @@ function formatarPosto(posto, distancia) {
     return `📍 *${nome}* (~${distancia.toFixed(1)} km)\n   Endereço: ${enderecoDisplay}\n   🗺️ Ver no mapa: ${mapsUrl}`;
 }
 
-
-// --- HANDLERS DE CONVERSA ---
-
-// Lida com a localização recebida
 async function handleLocation(from, location) {
     await client.sendMessage(from, 'Ótimo, recebi sua localização! Só um momento enquanto procuro os postos de saúde mais próximos... 🗺️');
     const userLat = parseFloat(location.latitude);
@@ -193,7 +129,8 @@ async function handleLocation(from, location) {
     try {
         const uf = await reverseGeocode(userLat, userLon);
         if (!uf) {
-            await client.sendMessage(from, 'Desculpe, não consegui identificar o estado em que você está. Por favor, tente enviar a localização novamente.');
+            await client.sendMessage(from, 'Desculpe, não consegui identificar o estado em que você está. Tente enviar a localização novamente.');
+            delete userSessions[from];
             return;
         }
 
@@ -205,17 +142,17 @@ async function handleLocation(from, location) {
         }
 
         const postosComDistancia = todosPostos
-            .filter(p => p.latitude && p.longitude)
+            // >>>>> MUDANÇA: Usando os nomes de campo da nova API (vlrLatitude, vlrLongitude) <<<<<
+            .filter(p => p.vlrLatitude && p.vlrLongitude)
             .map(posto => {
-                const postoLat = parseFloat(posto.latitude.replace(',', '.'));
-                const postoLon = parseFloat(posto.longitude.replace(',', '.'));
+                const postoLat = parseFloat(posto.vlrLatitude);
+                const postoLon = parseFloat(posto.vlrLongitude);
                 const distancia = calculateDistance(userLat, userLon, postoLat, postoLon);
                 return { ...posto, distancia };
             });
 
         postosComDistancia.sort((a, b) => a.distancia - b.distancia);
-
-        const postosProximos = postosComDistancia.slice(0, 5); // Pega os 5 mais próximos
+        const postosProximos = postosComDistancia.slice(0, 5);
 
         if (postosProximos.length > 0) {
             let botResponse = 'Aqui estão os 5 postos de saúde mais próximos de você:\n\n';
@@ -223,19 +160,17 @@ async function handleLocation(from, location) {
             botResponse += '\n\nObrigado por utilizar nosso sistema! Se cuida na estrada!';
             await client.sendMessage(from, botResponse);
         } else {
-            await client.sendMessage(from, 'Não encontrei postos de saúde com geolocalização próximos a você. Verificando a cidade...');
+            await client.sendMessage(from, 'Não encontrei postos de saúde com geolocalização próximos a você neste estado.');
         }
 
     } catch (error) {
         console.error("Erro ao processar localização:", error);
-        await client.sendMessage(from, 'Ocorreu um erro técnico ao processar sua localização. Por favor, tente novamente mais tarde.');
+        await client.sendMessage(from, 'Ocorreu um erro técnico ao processar sua localização. Tente novamente mais tarde.');
     } finally {
         delete userSessions[from];
     }
 }
 
-
-// Lida com a conversa por texto
 async function handleConversation(from, userInput) {
     if (!userSessions[from]) {
         userSessions[from] = { step: 'START', data: {} };
@@ -260,7 +195,7 @@ async function handleConversation(from, userInput) {
             break;
         case 'GET_PHONE':
             session.data.telefone = userInput;
-            botResponse = `Obrigado pelas informações! Para encontrar o posto de saúde mais próximo, por favor, me envie sua localização atual.\n\nVocê pode fazer isso clicando no *clipe de anexo (📎)* aqui no WhatsApp, depois em *'Localização'* e em seguida em *'Localização em tempo real'* ou *'Localização atual'*.`;
+            botResponse = `Obrigado pelas informações! Para encontrar o posto de saúde mais próximo, por favor, me envie sua localização atual.\n\nVocê pode fazer isso clicando no *clipe de anexo (📎)* aqui no WhatsApp, depois em *'Localização'* e em seguida em *'Localização atual'*.`;
             session.step = 'GET_LOCATION';
             break;
         case 'GET_LOCATION':
@@ -273,7 +208,6 @@ async function handleConversation(from, userInput) {
         console.log(`Resposta enviada para ${from}.`);
     }
 }
-
 
 // --- INICIA O CLIENTE ---
 client.initialize();
