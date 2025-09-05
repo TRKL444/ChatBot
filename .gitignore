@@ -5,6 +5,7 @@ Esta pasta contém todas as bibliotecas baixadas e não deve ser versionada.
 Arquivos de sessão e cache do whatsapp-web.js
 Contém informações sensíveis de login e NUNCA deve ser enviado.
 /.wwebjs_auth/session
+/.wwebjs_bjs/cache
 
 Arquivos de log
 Arquivos de log que podem ser gerados durante a execução.
